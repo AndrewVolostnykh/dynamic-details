@@ -1,7 +1,7 @@
 package com.lessons.spring.springdb.frameworks.details.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lessons.spring.springdb.frameworks.DetailType;
+import com.lessons.spring.springdb.frameworks.details.DetailType;
 import com.lessons.spring.springdb.frameworks.details.DetailEntry;
 import lombok.Data;
 

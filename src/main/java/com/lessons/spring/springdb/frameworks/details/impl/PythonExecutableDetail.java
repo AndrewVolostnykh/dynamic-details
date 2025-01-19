@@ -1,7 +1,7 @@
 package com.lessons.spring.springdb.frameworks.details.impl;
 
 import com.lessons.spring.springdb.frameworks.details.DetailEntry;
-import com.lessons.spring.springdb.frameworks.DetailType;
+import com.lessons.spring.springdb.frameworks.details.DetailType;
 import lombok.Data;
 
 import java.util.Map;

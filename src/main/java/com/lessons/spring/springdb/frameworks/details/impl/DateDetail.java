@@ -1,6 +1,6 @@
 package com.lessons.spring.springdb.frameworks.details.impl;
 
-import com.lessons.spring.springdb.frameworks.DetailType;
+import com.lessons.spring.springdb.frameworks.details.DetailType;
 import com.lessons.spring.springdb.frameworks.details.DetailEntry;
 import lombok.AllArgsConstructor;
 import lombok.Data;
