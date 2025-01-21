@@ -1,16 +1,18 @@
 package com.lessons.spring.springdb.frameworks.details.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lessons.spring.springdb.frameworks.core.exceptions.DetailProcessException;
 import com.lessons.spring.springdb.frameworks.details.DetailEntry;
 import com.lessons.spring.springdb.frameworks.details.DetailType;
-import com.lessons.spring.springdb.frameworks.services.BusinessContext;
-import com.lessons.spring.springdb.frameworks.services.ComputableDetailContext;
+import com.lessons.spring.springdb.frameworks.services.context.BusinessContext;
+import com.lessons.spring.springdb.frameworks.services.context.ComputableDetailContext;
 import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 import java.util.ArrayList;
@@ -24,7 +26,7 @@ import java.util.regex.Pattern;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ComputableDetail implements DetailEntry<Object> {
+public class ComputableDetail<T> implements DetailEntry<Object> {
 
     public static final String ALIAS_REPLACING_PATTERN = "<\\w+>";
     private static final Pattern PATTERN = Pattern.compile(ALIAS_REPLACING_PATTERN);
@@ -33,7 +35,8 @@ public class ComputableDetail implements DetailEntry<Object> {
     private String formula;
     private String code;
     private String name;
-    private Map<Long, DetailEntry<Object>> relatedDetails = new HashMap<>();
+    private Class<T> expectedReturnType;
+    private Map<Long, DetailEntry<?>> relatedDetails = new HashMap<>();
 
     // TODO: store as JSON object of a detail
     private transient List<String> stackLog = new ArrayList<>();
@@ -45,13 +48,17 @@ public class ComputableDetail implements DetailEntry<Object> {
     public ComputableDetail(
             Long id,
             String formula,
-            Map<Long, DetailEntry<Object>> relatedDetails) {
+            Map<Long, DetailEntry<?>> relatedDetails) {
         this.formula = formula;
         this.relatedDetails = relatedDetails;
         this.id = id;
     }
 
-    public Object getValue() {
+    public void printStackLog() {
+        stackLog.forEach(System.out::println);
+    }
+
+    public T getValue() {
         try {
             if (businessContext == null) {
                 throw new RuntimeException(String.format("BusinessContext is null for computable detail: %s", id));
@@ -65,24 +72,34 @@ public class ComputableDetail implements DetailEntry<Object> {
             SpelExpressionParser parser = new SpelExpressionParser();
             String preparedFormula = prepareFormulaToExecution();
             stackLog.add(String.format("Prepared formula [%s]", preparedFormula));
-            String rawValue = parser.parseExpression(preparedFormula).getValue(context, String.class);
+            T rawValue = parser.parseExpression(preparedFormula).getValue(context, expectedReturnType);
 
             if (rawValue != null) {
                 stackLog.add("Result value: " + rawValue);
-                // TODO: there should be returned not String, but exect detail type
+                // TODO: return only allowed types: string, big decimal, map, list
                 return rawValue;
             }
         } catch (DetailProcessException dpe) {
-            String message = String.format(">>>> Detail computation failed: %s. Detail id: %s", dpe.getMessage(), id);
+            String message = String.format(
+                    ">>>> Detail computation failed: %s. Formula: %s; Detail id: %s",
+                    dpe.getMessage(),
+                    this.formula,
+                    id
+            );
             stackLog.add(message);
             throw new RuntimeException(message);
         }
 
-        // TODO: incorrect return type
-        return new Object();
+        String message = String.format(
+                ">>>> Computation failed. Detail did not return value. Formula: %s; Detail id: %s",
+                this.formula,
+                id
+        );
+        stackLog.add(message);
+        throw new RuntimeException(message);
     }
 
-    private Object getDetailValue(DetailEntry<Object> detail) {
+    private Object getDetailValue(DetailEntry<?> detail) {
         Object value = detail.getValue();
         if (detail instanceof ComputableDetail) {
             stackLog.add(String.format("Sub-detail id=[%s] stack log", detail.getId()));
@@ -97,9 +114,12 @@ public class ComputableDetail implements DetailEntry<Object> {
         Matcher matcher = PATTERN.matcher(formula);
         while (matcher.find()) {
             Long relatedDetailId = Long.parseLong(matcher.group().replaceAll("[\\<\\>]", ""));
-            DetailEntry<Object> detail = relatedDetails.get(relatedDetailId);
+            DetailEntry<?> detail = relatedDetails.get(relatedDetailId);
             String group = matcher.group();
             Object value = getDetailValue(detail);
+            if (value instanceof Map) {
+                value = toJson(value);
+            }
             stackLog.add(String.format("Detected detail sub-value: id=[%s], value=[%s]", group, value));
             result.put(
                     matcher.group(),
@@ -123,4 +143,9 @@ public class ComputableDetail implements DetailEntry<Object> {
         return DetailType.COMPUTABLE;
     }
 
+    // TODO: correct exception processing
+    @SneakyThrows
+    private String toJson(Object toJson) {
+        return new ObjectMapper().writeValueAsString(toJson);
+    }
 }
