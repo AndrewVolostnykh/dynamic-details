@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 public class DataCastService {
 
     public BigDecimal toNumber(String number) {
-        // should it be parse Double?
+        // TODO: should it be parsed to a Double?
         return new BigDecimal(number);
     }
 

@@ -40,6 +40,7 @@ public class ComputableDetailTest extends AbstractUnitTest {
     // no casting to BigDecimal
     @Test
     public void compute_getValueFromMap_validResult() {
+        // given
         ComputableDetail<BigDecimal> relatedBigDecimal = new ComputableDetail<>();
         relatedBigDecimal.setId(1L);
         relatedBigDecimal.setFormula("{\"sum\": 1000}");
@@ -50,6 +51,7 @@ public class ComputableDetailTest extends AbstractUnitTest {
         computableDetail.setBusinessContext(businessContext);
         relatedBigDecimal.setBusinessContext(businessContext);
 
+        // when/then
         assertEquals(2000, computableDetail.getValue());
     }
 

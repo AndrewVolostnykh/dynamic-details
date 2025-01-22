@@ -37,6 +37,8 @@ public class ComputableDetail<T> implements DetailEntry<Object> {
     private String name;
     private Class<T> expectedReturnType;
     private Map<Long, DetailEntry<?>> relatedDetails = new HashMap<>();
+    // TODO: should it be like DB related entity?
+    private Object sourceEntity;
 
     // TODO: store as JSON object of a detail
     private transient List<String> stackLog = new ArrayList<>();
@@ -66,7 +68,7 @@ public class ComputableDetail<T> implements DetailEntry<Object> {
 
             stackLog.add(String.format("Computing %s with formula %s", id, formula));
             ComputableDetailContext context = new ComputableDetailContext(
-                    this,
+                    sourceEntity,
                     businessContext.getBeanResolver()
             );
             SpelExpressionParser parser = new SpelExpressionParser();

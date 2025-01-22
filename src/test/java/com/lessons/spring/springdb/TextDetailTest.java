@@ -8,10 +8,11 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TextComputableTest extends AbstractUnitTest {
+public class TextDetailTest extends AbstractUnitTest {
 
     @Test
     public void computableDetail_concatSeveralTextDetails_correctResult() {
+        // given
         TextDetail userPhoneNumber = new TextDetail();
         userPhoneNumber.setValue("1234567890");
         TextDetail userDetails = new TextDetail();
@@ -27,6 +28,7 @@ public class TextComputableTest extends AbstractUnitTest {
                 )
         );
 
+        // when/then
         assertEquals(
                 "Contact to Test User; phone number: 1234567890",
                 computableDetail.getValue()
