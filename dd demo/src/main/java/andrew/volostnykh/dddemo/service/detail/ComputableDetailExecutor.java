@@ -1,18 +1,9 @@
-package andrew.volostnykh.dynamic.details.impl;
+package andrew.volostnykh.dddemo.service.detail;
 
-import andrew.volostnykh.dynamic.details.lang.DBRelation;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import andrew.volostnykh.dddemo.core.exceptions.DetailProcessException;
+import andrew.volostnykh.dddemo.model.Detail;
+import andrew.volostnykh.dddemo.model.DetailValueType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import andrew.volostnykh.dynamic.details.exceptions.DetailProcessException;
-import andrew.volostnykh.dynamic.details.Detail;
-import andrew.volostnykh.dynamic.details.DetailType;
-import andrew.volostnykh.dynamic.details.services.context.BusinessContext;
-import andrew.volostnykh.dynamic.details.services.context.ComputableDetailContext;
-import jakarta.persistence.Transient;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
@@ -23,64 +14,50 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class ComputableDetail<T> implements Detail<Object> {
-
+public class ComputableDetailExecutor {
     public static final String ALIAS_REPLACING_PATTERN = "<\\w+>";
     private static final Pattern PATTERN = Pattern.compile(ALIAS_REPLACING_PATTERN);
 
     private Long id;
     private String formula;
-    private String code;
-    private String name;
 
-    // should it be stored in DB?
-    private Class<T> expectedReturnType;
-    @DBRelation
-    private Map<Long, Detail<?>> relatedDetails = new HashMap<>();
-
-    // TODO: should it be like DB related entity?
-    @DBRelation
+    private Map<String, Detail> relatedDetails = new HashMap<>();
     private Object sourceEntity;
+    private Detail detail;
 
-    // TODO: store as JSON object of a detail
-    @Transient
-    private transient List<String> stackLog = new ArrayList<>();
-    @Transient
-    @JsonIgnore
-    @Setter
-    private transient BusinessContext businessContext;
+    private List<String> stackLog = new ArrayList<>();
+    private DetailProcessorContext detailProcessorContext;
 
-    public ComputableDetail(
-            Long id,
-            String formula,
-            Map<Long, Detail<?>> relatedDetails) {
-        this.formula = formula;
-        this.relatedDetails = relatedDetails;
-        this.id = id;
+    public ComputableDetailExecutor(
+            Detail detail,
+            Map<String, Detail> relatedCodeDetail,
+            Object sourceEntity,
+            DetailProcessorContext detailProcessorContext
+    ) {
+        this.detail = detail;
+        this.id = detail.getId();
+        this.formula = detail.getFormula();
+        this.relatedDetails = relatedCodeDetail;
+        this.sourceEntity = sourceEntity;
+        this.detailProcessorContext = detailProcessorContext;
     }
 
-    public void printStackLog() {
-        stackLog.forEach(System.out::println);
-    }
-
-    public T getValue() {
+    public String getValue() {
         try {
-            if (businessContext == null) {
-                throw new RuntimeException(String.format("BusinessContext is null for computable detail: %s", id));
+            if (detailProcessorContext == null) {
+                throw new RuntimeException(String.format("DetailProcessorContext is null for computable detail: %s", id));
             }
 
             stackLog.add(String.format("Computing %s with formula %s", id, formula));
-            ComputableDetailContext context = new ComputableDetailContext(
+            ComputableExecutionContext context = new ComputableExecutionContext(
+                    detail,
                     sourceEntity,
-                    businessContext.getBeanResolver()
+                    detailProcessorContext
             );
             SpelExpressionParser parser = new SpelExpressionParser();
             String preparedFormula = prepareFormulaToExecution();
             stackLog.add(String.format("Prepared formula [%s]", preparedFormula));
-            T rawValue = parser.parseExpression(preparedFormula).getValue(context, expectedReturnType);
+            String rawValue = parser.parseExpression(preparedFormula).getValue(context, String.class);
 
             if (rawValue != null) {
                 stackLog.add("Result value: " + rawValue);
@@ -99,7 +76,7 @@ public class ComputableDetail<T> implements Detail<Object> {
         }
 
         String message = String.format(
-                ">>>> Computation failed. Detail did not return value. Formula: %s; Detail id: %s",
+                ">>>> Detail computation failed. Detail did not return value. Formula: %s; Detail id: %s",
                 this.formula,
                 id
         );
@@ -107,22 +84,29 @@ public class ComputableDetail<T> implements Detail<Object> {
         throw new RuntimeException(message);
     }
 
-    private Object getDetailValue(Detail<?> detail) {
-        Object value = detail.getValue();
-        if (detail instanceof ComputableDetail) {
+    private Object getDetailValue(Detail detail) {
+        if (detail.getValueType() == DetailValueType.COMPUTABLE) {
             stackLog.add(String.format("Sub-detail id=[%s] stack log", detail.getId()));
-            stackLog.addAll(((ComputableDetail) detail).getStackLog());
+            if (detail.getStackLog() != null) {
+                stackLog.addAll(detail.getStackLog());
+            }
+            return new ComputableDetailExecutor(
+                        detail,
+                        relatedDetails,
+                        sourceEntity,
+                        detailProcessorContext)
+                    .getValue();
         }
 
-        return value;
+        return detail.getValue();
     }
-
     public String prepareFormulaToExecution() {
         Map<String, Object> result = new HashMap<>();
         Matcher matcher = PATTERN.matcher(formula);
         while (matcher.find()) {
-            Long relatedDetailId = Long.parseLong(matcher.group().replaceAll("[\\<\\>]", ""));
-            Detail<?> detail = relatedDetails.get(relatedDetailId);
+            // FIXME: CRITICAL BUG!!! Next line will remove all '<' and '>' symbols from expression!
+            String relatedDetailId = matcher.group().replaceAll("[\\<\\>]", "");
+            Detail detail = relatedDetails.get(relatedDetailId);
             String group = matcher.group();
             Object value = getDetailValue(detail);
             if (value instanceof Map) {
@@ -144,11 +128,6 @@ public class ComputableDetail<T> implements Detail<Object> {
         }
 
         return formula;
-    }
-
-    @Override
-    public DetailType getType() {
-        return DetailType.COMPUTABLE;
     }
 
     // TODO: correct exception processing

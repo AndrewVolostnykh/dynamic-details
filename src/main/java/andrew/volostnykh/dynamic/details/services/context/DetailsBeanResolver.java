@@ -12,9 +12,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DetailsBeanResolver implements BeanResolver {
 
-    private static final Set<String> ALLOWED_BEANS = Set.of(
-            "math", "ijson", "date"
-    );
 
     private final ApplicationContext applicationContext;
 

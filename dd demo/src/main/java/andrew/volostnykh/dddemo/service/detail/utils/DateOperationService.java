@@ -1,4 +1,4 @@
-package andrew.volostnykh.dynamic.details.services;
+package andrew.volostnykh.dddemo.service.detail.utils;
 
 import org.springframework.stereotype.Service;
 
