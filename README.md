@@ -10,5 +10,7 @@ processed for different business situations
 
 ### Docs
 [General project overview and features](docs/GENERAL_INFORMATION.md)
+
 [Performance analysis](docs/PERFORMANCE.md)
+
 [Full guide how it can be used](docs/GUIDE.md)
