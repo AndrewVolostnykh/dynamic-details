@@ -1,0 +1,8 @@
+export enum DetailValueType {
+  TEXT="TEXT",
+  DATE="DATE",
+  COMPUTABLE="COMPUTABLE",
+  OBJECT="OBJECT",
+  DECIMAL="DECIMAL",
+  PERIODIC="PERIODIC"
+}

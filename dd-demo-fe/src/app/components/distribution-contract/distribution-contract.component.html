@@ -1,0 +1,47 @@
+<form>
+  <mat-grid-list cols="2" rowHeight="2:1">
+    <h3>Information</h3>
+    <mat-chip-grid>
+      <mat-form-field class="example-full-width">
+        <mat-label>Name</mat-label>
+        <input type="text" matInput value='{{this.contract.name}}}'>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="example-full-width">
+        <mat-label>Price</mat-label>
+        <input type="text" matInput value='{{this.contract.price}}'>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="example-full-width">
+        <mat-label>Delay fine</mat-label>
+        <input type="text" matInput value='{{this.contract.delayFine}}'>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="example-full-width">
+        <mat-label>Depreciation rate</mat-label>
+        <input type="text" matInput value='{{this.contract.depreciationRate}}'>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="example-full-width">
+        <mat-label>Start Date</mat-label>
+        <input type="text" matInput value='{{this.contract.startDate}}'>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="example-full-width">
+        <mat-label>Dead line</mat-label>
+        <input type="text" matInput value='{{this.contract.deadLine}}'>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="example-full-width">
+        <mat-label>Description</mat-label>
+        <textarea type="text" matInput value='{{this.contract.description}}'></textarea>
+      </mat-form-field>
+    </mat-chip-grid>
+    <h3>Details</h3>
+    <mat-chip-grid>
+    </mat-chip-grid>
+    <mat-chip-grid *ngFor="let detail of contract.details">
+      <app-detail [detail]=detail></app-detail>
+    </mat-chip-grid>
+  </mat-grid-list>
+</form>

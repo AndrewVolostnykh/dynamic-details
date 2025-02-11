@@ -1,0 +1,8 @@
+<div *ngFor="let contract of contracts">
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <a routerLink="/distribution-contract/{{contract.id}}">
+      {{contract.name}}; Started at: {{contract.startDate}}</a>
+    </mat-card-content>
+  </mat-card>
+</div>
